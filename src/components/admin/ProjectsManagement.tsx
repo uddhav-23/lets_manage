@@ -169,6 +169,7 @@ export default function ProjectsManagement() {
                 <ImageUpload
                   onImageUploaded={(imageId) => setFormData({ ...formData, imageId })}
                   currentImageId={formData.imageId}
+                  folder="projects"
                 />
               </div>
               <div className="flex space-x-4">

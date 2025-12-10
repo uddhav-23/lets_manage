@@ -188,6 +188,7 @@ export default function ClientsManagement() {
                 <ImageUpload
                   onImageUploaded={(imageId) => setFormData({ ...formData, imageId })}
                   currentImageId={formData.imageId}
+                  folder="clients"
                 />
               </div>
               <div className="flex space-x-4">

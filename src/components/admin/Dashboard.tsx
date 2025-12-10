@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { getAllContacts } from "../../services/contacts";
 import { getAllProjects } from "../../services/projects";
 import { getAllClients } from "../../services/clients";
 import { getAllSubscribers } from "../../services/subscribers";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [contacts, setContacts] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
@@ -149,22 +152,42 @@ export default function Dashboard() {
           <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
           
           <div className="grid grid-cols-2 gap-4">
-            <button className="p-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 group">
+            <button 
+              onClick={() => navigate('/admin/projects')}
+              className="p-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 group"
+            >
               <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">🚀</div>
               <div className="text-sm font-semibold">Add Project</div>
             </button>
             
-            <button className="p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 group">
+            <button 
+              onClick={() => navigate('/admin/clients')}
+              className="p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 group"
+            >
               <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">👥</div>
               <div className="text-sm font-semibold">Add Client</div>
             </button>
             
-            <button className="p-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 transform hover:scale-105 group">
+            <button 
+              onClick={() => {
+                // Scroll to analytics section or show analytics modal
+                const analyticsSection = document.getElementById('performance-overview');
+                if (analyticsSection) {
+                  analyticsSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="p-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 transform hover:scale-105 group"
+            >
               <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">📊</div>
               <div className="text-sm font-semibold">View Analytics</div>
             </button>
             
-            <button className="p-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-300 transform hover:scale-105 group">
+            <button 
+              onClick={() => {
+                toast.info('Settings feature coming soon!');
+              }}
+              className="p-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-300 transform hover:scale-105 group"
+            >
               <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">⚙️</div>
               <div className="text-sm font-semibold">Settings</div>
             </button>
@@ -173,7 +196,7 @@ export default function Dashboard() {
       </div>
 
       {/* Performance Chart Placeholder */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 animate-fade-in-up animation-delay-600">
+      <div id="performance-overview" className="bg-white rounded-2xl shadow-lg p-6 animate-fade-in-up animation-delay-600">
         <h2 className="text-xl font-bold text-gray-900 mb-6">Performance Overview</h2>
         
         <div className="h-64 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl flex items-center justify-center">

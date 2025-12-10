@@ -121,21 +121,32 @@ export const deleteClient = async (id: string): Promise<void> => {
 // Generate upload URL (for Firebase Storage) - for client images - Optimized
 export const generateUploadUrl = async (file: File): Promise<string> => {
   try {
+    console.log('Starting client image upload, file size:', file.size, 'bytes');
     const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const storageRef = ref(storage, `clients/${Date.now()}_${cleanFileName}`);
     
+    console.log('Uploading to:', storageRef.fullPath);
+    
     await uploadBytes(storageRef, file, {
       contentType: 'image/jpeg',
-      cacheControl: 'public, max-age=31536000',
     });
     
+    console.log('Upload successful:', storageRef.fullPath);
     return storageRef.fullPath;
   } catch (error: any) {
-    console.error('Firebase Storage upload error:', error);
-    if (error?.code === 'storage/unauthorized' || error?.code === 'permission-denied') {
-      throw new Error('Permission denied. Make sure you are logged in.');
+    console.error('Firebase Storage upload error (clients):', error);
+    const errorCode = error?.code || 'unknown';
+    const errorMessage = error?.message || 'Unknown error';
+    
+    if (errorCode === 'storage/unauthorized' || errorCode === 'permission-denied') {
+      throw new Error('Permission denied. Make sure you are logged in and Storage rules allow uploads.');
+    } else if (errorCode === 'storage/quota-exceeded') {
+      throw new Error('Storage quota exceeded.');
+    } else if (errorMessage.includes('timeout') || errorMessage.includes('network')) {
+      throw new Error('Network timeout. Please check your connection and try again.');
+    } else {
+      throw new Error(`Upload failed: ${errorMessage}`);
     }
-    throw new Error(`Upload failed: ${error?.message || 'Unknown error'}`);
   }
 };
 

@@ -116,17 +116,21 @@ export const deleteProject = async (id: string): Promise<void> => {
 // Generate upload URL (for Firebase Storage) - Optimized for speed
 export const generateUploadUrl = async (file: File): Promise<string> => {
   try {
+    console.log('Starting upload, file size:', file.size, 'bytes');
+    
     // Clean filename - remove special characters
     const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const fileName = `projects/${Date.now()}_${cleanFileName}`;
     const storageRef = ref(storage, fileName);
     
-    // Upload directly without extra metadata for speed
+    console.log('Uploading to:', fileName);
+    
+    // Upload with minimal metadata for speed
     await uploadBytes(storageRef, file, {
       contentType: 'image/jpeg',
-      cacheControl: 'public, max-age=31536000',
     });
     
+    console.log('Upload successful:', storageRef.fullPath);
     return storageRef.fullPath;
   } catch (error: any) {
     console.error('Firebase Storage upload error:', error);
@@ -134,9 +138,13 @@ export const generateUploadUrl = async (file: File): Promise<string> => {
     const errorMessage = error?.message || 'Unknown error';
     
     if (errorCode === 'storage/unauthorized' || errorCode === 'permission-denied') {
-      throw new Error('Permission denied. Make sure you are logged in.');
+      throw new Error('Permission denied. Make sure you are logged in and Storage rules allow uploads.');
     } else if (errorCode === 'storage/quota-exceeded') {
-      throw new Error('Storage quota exceeded.');
+      throw new Error('Storage quota exceeded. Please check your Firebase plan.');
+    } else if (errorCode === 'storage/canceled') {
+      throw new Error('Upload was canceled.');
+    } else if (errorMessage.includes('timeout') || errorMessage.includes('network')) {
+      throw new Error('Network timeout. Please check your connection and try again.');
     } else {
       throw new Error(`Upload failed: ${errorMessage}`);
     }

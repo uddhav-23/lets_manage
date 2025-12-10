@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { generateUploadUrl, getImageUrl } from "../../services/projects";
+import { generateUploadUrl as generateProjectUploadUrl, getImageUrl as getProjectImageUrl } from "../../services/projects";
+import { generateUploadUrl as generateClientUploadUrl, getImageUrl as getClientImageUrl } from "../../services/clients";
 
 interface ImageUploadProps {
   onImageUploaded: (imageId: string) => void;
   currentImageId?: string;
+  folder: "projects" | "clients";
 }
 
-export default function ImageUpload({ onImageUploaded, currentImageId }: ImageUploadProps) {
+export default function ImageUpload({ onImageUploaded, currentImageId, folder }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -17,7 +19,9 @@ export default function ImageUpload({ onImageUploaded, currentImageId }: ImageUp
     if (currentImageId && !preview) {
       const loadPreview = async () => {
         try {
-          const url = await getImageUrl(currentImageId);
+          const url = folder === "projects" 
+            ? await getProjectImageUrl(currentImageId)
+            : await getClientImageUrl(currentImageId);
           setPreview(url);
         } catch (error) {
           console.error("Error loading preview:", error);
@@ -25,7 +29,7 @@ export default function ImageUpload({ onImageUploaded, currentImageId }: ImageUp
       };
       loadPreview();
     }
-  }, [currentImageId]);
+  }, [currentImageId, folder, preview]);
 
   // Cleanup object URLs on unmount
   useEffect(() => {
@@ -70,69 +74,82 @@ export default function ImageUpload({ onImageUploaded, currentImageId }: ImageUp
     let objectUrl: string | null = null;
 
     try {
+      toast.info('Processing image...');
+      
       // Create canvas for image cropping/resizing
       const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: false });
       if (!ctx) {
         throw new Error('Could not get canvas context');
       }
 
       const img = new Image();
+      img.crossOrigin = 'anonymous';
 
-      // Create promise to handle image loading
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => {
-          try {
-            // Set target dimensions (450x350 as specified)
-            const targetWidth = 450;
-            const targetHeight = 350;
-            
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
+      // Create promise to handle image loading with timeout
+      await Promise.race([
+        new Promise<void>((resolve, reject) => {
+          img.onload = () => {
+            try {
+              // Set target dimensions (450x350 as specified)
+              const targetWidth = 450;
+              const targetHeight = 350;
+              
+              canvas.width = targetWidth;
+              canvas.height = targetHeight;
 
-            // Calculate scaling to maintain aspect ratio
-            const scale = Math.min(targetWidth / img.width, targetHeight / img.height);
-            const scaledWidth = img.width * scale;
-            const scaledHeight = img.height * scale;
-            
-            // Center the image
-            const x = (targetWidth - scaledWidth) / 2;
-            const y = (targetHeight - scaledHeight) / 2;
+              // Calculate scaling to maintain aspect ratio
+              const scale = Math.min(targetWidth / img.width, targetHeight / img.height);
+              const scaledWidth = img.width * scale;
+              const scaledHeight = img.height * scale;
+              
+              // Center the image
+              const x = (targetWidth - scaledWidth) / 2;
+              const y = (targetHeight - scaledHeight) / 2;
 
-            // Fill background with white
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, targetWidth, targetHeight);
-            
-            // Draw the scaled image
-            ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        };
+              // Fill background with white
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, targetWidth, targetHeight);
+              
+              // Draw the scaled image
+              ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          };
 
-        img.onerror = () => {
-          reject(new Error('Failed to load image'));
-        };
+          img.onerror = () => {
+            reject(new Error('Failed to load image'));
+          };
 
-        objectUrl = URL.createObjectURL(file);
-        img.src = objectUrl;
-      });
+          objectUrl = URL.createObjectURL(file);
+          img.src = objectUrl;
+        }),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Image processing timeout')), 10000);
+        })
+      ]);
 
       // Convert canvas to blob with lower quality for faster upload
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to convert canvas to blob'));
-            }
-          },
-          'image/jpeg',
-          0.75 // Reduced quality for faster upload (was 0.9)
-        );
-      });
+      const blob = await Promise.race([
+        new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error('Failed to convert canvas to blob'));
+              }
+            },
+            'image/jpeg',
+            0.6 // Further reduced quality for faster upload
+          );
+        }),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Blob conversion timeout')), 5000);
+        })
+      ]);
 
       // Convert blob to File for Firebase Storage
       const processedFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), { 
@@ -140,9 +157,17 @@ export default function ImageUpload({ onImageUploaded, currentImageId }: ImageUp
         lastModified: Date.now()
       });
       
-      // Upload to Firebase Storage
+      console.log('Processed file size:', processedFile.size, 'bytes');
+      
+      // Upload to Firebase Storage with timeout
       toast.info('Uploading image...');
-      const storagePath = await generateUploadUrl(processedFile);
+      const uploadFunction = folder === "projects" ? generateProjectUploadUrl : generateClientUploadUrl;
+      const storagePath = await Promise.race([
+        uploadFunction(processedFile),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Upload timeout - please check your connection')), 30000);
+        })
+      ]);
       
       // Call the callback
       onImageUploaded(storagePath);

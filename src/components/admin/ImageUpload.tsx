@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { useAuth } from "../../contexts/AuthContext";
 import { generateUploadUrl as generateProjectUploadUrl, getImageUrl as getProjectImageUrl } from "../../services/projects";
 import { generateUploadUrl as generateClientUploadUrl, getImageUrl as getClientImageUrl } from "../../services/clients";
 
@@ -10,6 +11,7 @@ interface ImageUploadProps {
 }
 
 export default function ImageUpload({ onImageUploaded, currentImageId, folder }: ImageUploadProps) {
+  const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -49,6 +51,12 @@ export default function ImageUpload({ onImageUploaded, currentImageId, folder }:
     }
 
     if (!file) return;
+
+    // Check if user is authenticated
+    if (!user) {
+      toast.error('You must be logged in to upload images. Please log in again.');
+      return;
+    }
 
     // Prevent multiple simultaneous uploads
     if (processingRef.current || uploading) {
@@ -182,11 +190,23 @@ export default function ImageUpload({ onImageUploaded, currentImageId, folder }:
       toast.success('Image uploaded successfully!');
     } catch (error: any) {
       console.error('Upload error:', error);
+      const errorCode = error?.code || 'unknown';
       const errorMessage = error?.message || 'Unknown error';
-      if (errorMessage.includes('storage') || errorMessage.includes('permission')) {
-        toast.error('Storage permission denied. Please check Firebase Storage rules.');
-      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+      
+      if (errorCode === 'storage/unauthorized' || errorCode === 'permission-denied' || errorMessage.includes('permission')) {
+        toast.error('Permission denied. Make sure you are logged in and Storage rules are deployed. Check browser console for details.');
+        console.error('Storage Rules Check:', {
+          authenticated: !!user,
+          userId: user?.uid,
+          errorCode,
+          errorMessage
+        });
+      } else if (errorCode === 'storage/quota-exceeded') {
+        toast.error('Storage quota exceeded. Please check your Firebase plan.');
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('network') || errorMessage.includes('fetch')) {
         toast.error('Network error. Please check your connection and try again.');
+      } else if (errorCode === 'storage/canceled') {
+        toast.error('Upload was canceled.');
       } else {
         toast.error(`Failed to upload image: ${errorMessage}`);
       }

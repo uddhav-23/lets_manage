@@ -54,10 +54,16 @@ export default function Header() {
             </button>
             <button
               onClick={() => scrollToSection('contact')}
-              className="bg-orange-600 text-white px-6 py-2 rounded-md font-medium hover:bg-orange-700 transition-colors"
+              className="text-gray-700 hover:text-orange-600 font-medium transition-colors"
             >
               CONTACT
             </button>
+            <Link
+              to="/admin/login"
+              className="bg-orange-600 text-white px-6 py-2 rounded-md font-medium hover:bg-orange-700 transition-colors"
+            >
+              ADMIN LOGIN
+            </Link>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -91,10 +97,16 @@ export default function Header() {
             </button>
             <button
               onClick={() => scrollToSection('contact')}
-              className="block w-full bg-orange-600 text-white px-6 py-2 rounded-md font-medium text-center"
+              className="block w-full text-left text-gray-700 hover:text-orange-600 font-medium"
             >
               CONTACT
             </button>
+            <Link
+              to="/admin/login"
+              className="block w-full bg-orange-600 text-white px-6 py-2 rounded-md font-medium text-center"
+            >
+              ADMIN LOGIN
+            </Link>
           </div>
         )}
       </div>

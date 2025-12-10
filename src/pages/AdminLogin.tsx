@@ -29,16 +29,12 @@ export default function AdminLogin() {
         navigate("/admin");
       }
     } catch (error: any) {
-      // Better error handling
+      console.error('Login/Signup error:', error);
       const errorMessage = error?.message || "";
-      if (errorMessage.includes("password")) {
-        toast.error(isSignUp 
-          ? "Password must be at least 6 characters long" 
-          : "Invalid email or password");
-      } else if (errorMessage.includes("email") || errorMessage.includes("user") || errorMessage.includes("already")) {
-        toast.error(isSignUp 
-          ? "Email already exists or is invalid" 
-          : "Invalid email or password");
+      
+      // Show the actual error message from Firebase
+      if (errorMessage) {
+        toast.error(errorMessage);
       } else {
         toast.error(isSignUp ? "Failed to create account. Please try again." : "Invalid credentials");
       }

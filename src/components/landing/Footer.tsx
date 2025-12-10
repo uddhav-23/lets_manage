@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import Newsletter from "./Newsletter";
 
 export default function Footer() {
@@ -107,8 +108,16 @@ export default function Footer() {
             <div className="text-gray-400 mb-4 md:mb-0">
               <p>All rights Reserved 2023</p>
             </div>
-            <div className="text-2xl font-bold">
-              Real Trust
+            <div className="flex items-center gap-6">
+              <div className="text-2xl font-bold">
+                Real Trust
+              </div>
+              <Link
+                to="/admin/login"
+                className="text-gray-400 hover:text-orange-600 transition-colors text-sm font-medium"
+              >
+                Admin Login
+              </Link>
             </div>
           </div>
         </div>

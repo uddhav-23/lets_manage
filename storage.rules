@@ -1,0 +1,27 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Projects images - public read, authenticated write
+    match /projects/{imageId} {
+      allow read: if true; // Public read for landing page
+      allow write: if isAuthenticated(); // Authenticated users can upload/delete
+    }
+    
+    // Clients images - public read, authenticated write
+    match /clients/{imageId} {
+      allow read: if true; // Public read for landing page
+      allow write: if isAuthenticated(); // Authenticated users can upload/delete
+    }
+    
+    // Default deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

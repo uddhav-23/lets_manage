@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is admin (based on custom claim or user document)
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true
+      );
+    }
+    
+    // Contacts collection - anyone can create (landing page), authenticated users can read
+    match /contacts/{contactId} {
+      allow create: if true; // Allow anonymous submissions from landing page
+      allow read: if isAuthenticated(); // Authenticated users (admins) can read
+      allow update, delete: if isAuthenticated(); // Authenticated users can manage
+    }
+    
+    // Projects collection - public read (landing page), authenticated write (admin)
+    match /projects/{projectId} {
+      allow read: if true; // Public read for landing page
+      allow create, update, delete: if isAuthenticated(); // Authenticated users can manage
+    }
+    
+    // Clients collection - public read (landing page), authenticated write (admin)
+    match /clients/{clientId} {
+      allow read: if true; // Public read for landing page
+      allow create, update, delete: if isAuthenticated(); // Authenticated users can manage
+    }
+    
+    // Subscribers collection - anyone can create (landing page), authenticated users can read
+    match /subscribers/{subscriberId} {
+      allow create: if true; // Allow anonymous subscriptions from landing page
+      allow read: if isAuthenticated(); // Authenticated users (admins) can read
+      allow update, delete: if isAuthenticated(); // Authenticated users can manage
+    }
+    
+    // Users collection - users can read/write their own document, admins can read/write all
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+    
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

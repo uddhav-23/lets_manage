@@ -21,46 +21,58 @@ export const subscribe = async (email: string): Promise<string> => {
     
     const trimmedEmail = email.trim().toLowerCase();
     
-    // Check if email already exists (try with index, fallback without if needed)
+    // Validate email format
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      throw new Error('Please enter a valid email address');
+    }
+    
+    // Try to add directly - Firestore will handle duplicates if we check after
+    // First, try to check for duplicates without requiring an index
     try {
-      const q = query(collection(db, "subscribers"), where("email", "==", trimmedEmail));
-      const querySnapshot = await getDocs(q);
+      // Get all subscribers and check manually (for small datasets this is fine)
+      const allSubscribers = await getDocs(collection(db, "subscribers"));
+      const existingEmail = allSubscribers.docs.find(
+        doc => doc.data().email?.toLowerCase() === trimmedEmail
+      );
       
-      if (!querySnapshot.empty) {
+      if (existingEmail) {
         throw new Error("Email already subscribed");
       }
     } catch (checkError: any) {
-      // If index doesn't exist, we'll just try to add and let Firestore handle duplicates
-      if (checkError?.code !== 'failed-precondition') {
+      // If it's our "already subscribed" error, re-throw it
+      if (checkError?.message?.includes("already subscribed")) {
         throw checkError;
       }
-      console.warn('Index not found, skipping duplicate check');
+      // For other errors in duplicate check, log but continue
+      console.warn('Error checking duplicates, proceeding anyway:', checkError);
     }
     
+    // Add the subscriber
+    console.log('Adding subscriber to Firestore...');
     const docRef = await addDoc(collection(db, "subscribers"), {
       email: trimmedEmail,
       subscribedAt: Date.now(),
     });
     
-    console.log('Subscription successful:', docRef.id);
+    console.log('Subscription successful! Document ID:', docRef.id);
     return docRef.id;
   } catch (error: any) {
     console.error('Error subscribing:', error);
     const errorCode = error?.code || 'unknown';
     const errorMessage = error?.message || 'Unknown error';
     
+    // Handle specific Firebase errors
     if (errorMessage.includes("already subscribed")) {
-      throw error; // Re-throw as-is
+      throw new Error("Email already subscribed!");
     } else if (errorCode === 'permission-denied') {
-      throw new Error('Permission denied. Please check Firestore security rules.');
-    } else if (errorCode === 'failed-precondition') {
-      throw new Error('Database index required. Click the error link in the console to create the index.');
+      throw new Error('Permission denied. Please check Firestore security rules are deployed.');
     } else if (errorCode === 'unavailable') {
       throw new Error('Service temporarily unavailable. Please try again later.');
-    } else if (errorCode === 'already-exists') {
-      throw new Error('Email already subscribed');
+    } else if (errorCode === 'failed-precondition') {
+      throw new Error('Database setup required. Please check Firestore configuration.');
     } else {
-      throw new Error(`Failed to subscribe: ${errorMessage}`);
+      // Show the actual error message
+      throw new Error(errorMessage || 'Failed to subscribe. Please try again.');
     }
   }
 };

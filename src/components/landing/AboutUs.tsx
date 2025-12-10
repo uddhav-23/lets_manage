@@ -1,4 +1,17 @@
 export default function AboutUs() {
+  const scrollToContact = () => {
+    const element = document.getElementById('contact');
+    if (element) {
+      const headerHeight = 80;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
     <section className="py-20 bg-white" id="about">
       <div className="container mx-auto px-4">
@@ -9,7 +22,10 @@ export default function AboutUs() {
           <p className="text-lg text-gray-600 mb-8 leading-relaxed">
             With over a decade of experience in consultation, design, and marketing, we've helped hundreds of businesses transform their operations and achieve remarkable growth. Our team of experts combines strategic thinking with creative execution to deliver solutions that not only meet your current needs but also position you for future success.
           </p>
-          <button className="bg-orange-600 text-white px-8 py-4 rounded-md font-semibold hover:bg-orange-700 transition-colors">
+          <button 
+            onClick={scrollToContact}
+            className="bg-orange-600 text-white px-8 py-4 rounded-md font-semibold hover:bg-orange-700 transition-colors"
+          >
             LEARN MORE
           </button>
         </div>

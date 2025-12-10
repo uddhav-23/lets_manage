@@ -153,7 +153,16 @@ export default function OurProjects() {
               <h3 className="text-xl font-bold text-slate-900 mb-1">Ready to Start Your Project?</h3>
               <p className="text-slate-600">Let's discuss how we can bring your vision to life.</p>
             </div>
-            <button className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-full font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-105">
+            <button 
+              onClick={() => {
+                const el = document.getElementById('contact');
+                if (el) {
+                  const headerHeight = 80;
+                  window.scrollTo({ top: el.offsetTop - headerHeight, behavior: 'smooth' });
+                }
+              }}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-full font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-105"
+            >
               Get Started
             </button>
           </div>

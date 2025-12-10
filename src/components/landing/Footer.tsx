@@ -16,7 +16,16 @@ export default function Footer() {
           <p className="text-xl lg:text-2xl mb-8 max-w-3xl mx-auto">
             Learn more about our listing process, as well as our additional staging and design work.
           </p>
-          <button className="bg-orange-600 text-white px-8 py-4 rounded-md font-semibold text-lg hover:bg-orange-700 transition-colors">
+          <button 
+            onClick={() => {
+              const el = document.getElementById('contact');
+              if (el) {
+                const headerHeight = 80;
+                window.scrollTo({ top: el.offsetTop - headerHeight, behavior: 'smooth' });
+              }
+            }}
+            className="bg-orange-600 text-white px-8 py-4 rounded-md font-semibold text-lg hover:bg-orange-700 transition-colors"
+          >
             LEARN MORE
           </button>
         </div>

@@ -8,24 +8,26 @@ export default function Newsletter() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email format
+    if (!email || !email.includes('@')) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    
     setLoading(true);
 
     try {
+      console.log('Newsletter subscription attempt for:', email);
       await subscribeToNewsletter(email);
       toast.success("Successfully subscribed to newsletter!");
       setEmail("");
     } catch (error: any) {
       console.error('Newsletter subscription error:', error);
       const errorMessage = error?.message || 'Unknown error';
-      if (errorMessage.includes("already subscribed")) {
-        toast.error("Email already subscribed!");
-      } else if (errorMessage.includes('permission')) {
-        toast.error("Permission denied. Please check Firestore security rules.");
-      } else if (errorMessage.includes('index')) {
-        toast.error("Database setup required. Please create an index on the email field in Firestore.");
-      } else {
-        toast.error(`Failed to subscribe: ${errorMessage}`);
-      }
+      
+      // Show the actual error message from the service
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
